@@ -8,35 +8,41 @@ A robust digital wallet system with user authentication, wallet operations, tran
   - Secure user registration and login
   - JWT-based authentication
   - Protected routes with middleware
+  - Session tracking and last login updates
 
 - **Wallet Operations**
   - Deposit and withdraw virtual cash
   - Transfer funds between users
-  - Transaction history
+  - Transaction history with pagination
   - Multiple currency support
+  - Real-time balance updates
 
 - **Transaction Processing & Validation**
-  - Atomic transactions
-  - Balance validation
-  - Transaction status tracking
+  - Atomic transactions with MongoDB transactions
+  - Balance validation and overdraft protection
+  - Transaction status tracking (PENDING, COMPLETED, FAILED)
+  - Transaction rollback on failure
 
 - **Fraud Detection**
-  - Rule-based fraud detection
+  - Rule-based fraud detection system
   - Suspicious pattern detection
-  - Transaction flagging
+  - Transaction flagging and monitoring
   - Daily fraud reports
+  - Risk scoring for transactions
 
 - **Admin & Reporting**
-  - User management
-  - Transaction monitoring
-  - System statistics
-  - Fraud reports
+  - User management and status control
+  - Transaction monitoring and flagging
+  - System statistics and analytics
+  - Fraud reports and risk assessment
+  - User activity tracking
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - MongoDB (v6.0 or higher)
 - npm or yarn
+- Git
 
 ## Installation
 
@@ -52,24 +58,35 @@ A robust digital wallet system with user authentication, wallet operations, tran
    ```
 
 3. Configure MongoDB:
-   - Ensure MongoDB is installed and running.
-   - If you need to use transactions, configure MongoDB as a replica set:
-     - Edit `/usr/local/etc/mongod.conf` (or your MongoDB config file) and add:
-       ```yaml
-       replication:
-         replSetName: rs0
-       ```
-     - Restart MongoDB:
-       ```sh
-       brew services restart mongodb/brew/mongodb-community@6.0
-       ```
-     - Initialize the replica set:
-       ```sh
-       mongosh --eval "rs.initiate()"
-       ```
+   - Ensure MongoDB is installed and running
+   - For transaction support, configure MongoDB as a replica set:
+     ```sh
+     # Edit MongoDB config
+     sudo nano /usr/local/etc/mongod.conf
+     
+     # Add replication config
+     replication:
+       replSetName: rs0
+     
+     # Restart MongoDB
+     brew services restart mongodb/brew/mongodb-community@6.0
+     
+     # Initialize replica set
+     mongosh --eval "rs.initiate()"
+     ```
 
-4. Start the application:
+4. Set up environment variables:
    ```sh
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. Start the application:
+   ```sh
+   # Development mode
+   npm run dev
+   
+   # Production mode
    npm start
    ```
 
@@ -78,28 +95,28 @@ A robust digital wallet system with user authentication, wallet operations, tran
 Create a `.env` file in the root directory with the following variables:
 
 ```env
+# Server Configuration
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/digital-wallet
-JWT_SECRET=your-secret-key
 NODE_ENV=development
 
-# Email Configuration
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-specific-password
-EMAIL_FROM=your-email@gmail.com
-```
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/digital-wallet
 
-- **PORT**: The port on which the server will run (default: 3000).
-- **MONGODB_URI**: The MongoDB connection string (default: mongodb://localhost:27017/digital-wallet).
-- **JWT_SECRET**: A secret key used to sign JWT tokens (replace with a strong, unique value).
-- **NODE_ENV**: The environment (development, production, test).
-- **SMTP_HOST**: SMTP server host (e.g., smtp.gmail.com).
-- **SMTP_PORT**: SMTP server port (e.g., 587 for TLS).
-- **SMTP_USER**: SMTP username (your email).
-- **SMTP_PASS**: SMTP password or app-specific password.
-- **EMAIL_FROM**: Email address to send notifications from.
+# JWT Configuration
+JWT_SECRET=digital-wallet-secure-key-2024
+JWT_EXPIRES_IN=24h
+
+# Fraud Detection
+LARGE_TRANSACTION_THRESHOLD_USD=10000
+LARGE_TRANSACTION_THRESHOLD_EUR=8500
+LARGE_TRANSACTION_THRESHOLD_GBP=7500
+
+# Cleanup Configuration
+TRANSACTION_CLEANUP_DAYS=30
+
+# Logging Configuration
+LOG_LEVEL=info
+```
 
 **Note:** Do not commit the `.env` file to version control. It is already included in `.gitignore`.
 
@@ -108,9 +125,11 @@ EMAIL_FROM=your-email@gmail.com
 The API is documented using Swagger UI. Access it at:
 - http://localhost:3000/api-docs
 
-## Authentication
+## API Endpoints
 
-### Register a User
+### Authentication
+
+#### Register a User
 - **Endpoint:** `POST /api/auth/register`
 - **Body:**
   ```json
@@ -121,8 +140,9 @@ The API is documented using Swagger UI. Access it at:
     "lastName": "Name"
   }
   ```
+- **Response:** User profile and JWT token
 
-### Login
+#### Login
 - **Endpoint:** `POST /api/auth/login`
 - **Body:**
   ```json
@@ -131,30 +151,23 @@ The API is documented using Swagger UI. Access it at:
     "password": "your-password"
   }
   ```
-- **Response:** Includes a JWT token. Save this token for authenticated requests.
+- **Response:** User profile and JWT token
 
-### Get User Profile
+#### Get User Profile
 - **Endpoint:** `GET /api/auth/profile`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
+- **Response:** User profile with wallet information
 
-## Wallet Operations
+### Wallet Operations
 
-### Get Wallet Balance
+#### Get Wallet Balance
 - **Endpoint:** `GET /api/wallet/balance`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
+- **Response:** Current balance and currency
 
-### Deposit Funds
+#### Deposit Funds
 - **Endpoint:** `POST /api/wallet/deposit`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
 - **Body:**
   ```json
   {
@@ -162,13 +175,11 @@ The API is documented using Swagger UI. Access it at:
     "currency": "USD"
   }
   ```
+- **Response:** Transaction details
 
-### Withdraw Funds
+#### Withdraw Funds
 - **Endpoint:** `POST /api/wallet/withdraw`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
 - **Body:**
   ```json
   {
@@ -176,13 +187,11 @@ The API is documented using Swagger UI. Access it at:
     "currency": "USD"
   }
   ```
+- **Response:** Transaction details
 
-### Transfer Funds
+#### Transfer Funds
 - **Endpoint:** `POST /api/wallet/transfer`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
 - **Body:**
   ```json
   {
@@ -191,135 +200,98 @@ The API is documented using Swagger UI. Access it at:
     "currency": "USD"
   }
   ```
+- **Response:** Transaction details
 
-### Get Transaction History
+#### Get Transaction History
 - **Endpoint:** `GET /api/wallet/transactions`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_JWT_TOKEN
-  ```
-- **Query Parameters (Optional):**
-  - `limit`: Number of transactions to return (e.g., `?limit=10`)
-  - `skip`: Number of transactions to skip (e.g., `?skip=0`)
+- **Headers:** `Authorization: Bearer YOUR_JWT_TOKEN`
+- **Query Parameters:**
+  - `limit`: Number of transactions (default: 10, max: 100)
+  - `skip`: Number of transactions to skip (default: 0)
+- **Response:** List of transactions with pagination
 
-## Admin Features
+### Admin Features
 
-### Make a User Admin
-To make a user an admin, update the user in the MongoDB database:
+#### Make a User Admin
 ```sh
 mongosh digital-wallet --eval 'db.users.updateOne({ email: "your-email@example.com" }, { $set: { isAdmin: true } })'
 ```
 
-### Get All Users
+#### Get All Users
 - **Endpoint:** `GET /api/admin/users`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
+- **Response:** List of all users
 
-### Get User Details
+#### Get User Details
 - **Endpoint:** `GET /api/admin/users/{userId}`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
+- **Response:** Detailed user information
 
-### Update User Status
+#### Update User Status
 - **Endpoint:** `PATCH /api/admin/users/{userId}/status`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
 - **Body:**
   ```json
   {
     "isActive": false
   }
   ```
+- **Response:** Updated user status
 
-### Get Flagged Transactions
+#### Get Flagged Transactions
 - **Endpoint:** `GET /api/admin/transactions/flagged`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
+- **Response:** List of flagged transactions
 
-### Get Daily Fraud Report
+#### Get Daily Fraud Report
 - **Endpoint:** `GET /api/admin/reports/fraud`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
+- **Response:** Daily fraud statistics and flagged transactions
 
-### Get System Statistics
+#### Get System Statistics
 - **Endpoint:** `GET /api/admin/statistics`
-- **Headers:**
-  ```
-  Authorization: Bearer YOUR_ADMIN_JWT_TOKEN
-  ```
+- **Headers:** `Authorization: Bearer YOUR_ADMIN_JWT_TOKEN`
+- **Response:** System-wide statistics and metrics
 
-## Testing with Swagger UI
+## Error Handling
 
-1. Open http://localhost:3000/api-docs in your browser.
-2. Click the **Authorize** button (lock icon) at the top right.
-3. Enter your JWT token in the format:
-   ```
-   Bearer YOUR_JWT_TOKEN
-   ```
-4. Click **Authorize** and then **Close**.
-5. Expand any endpoint, click **Try it out**, fill in the required fields, and click **Execute**.
+The API uses standard HTTP status codes and returns error responses in the following format:
 
-## Testing with curl
-
-### Example: Register a User
-```sh
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"your-email@example.com","password":"your-password","firstName":"Your","lastName":"Name"}'
+```json
+{
+  "status": "error",
+  "message": "Error description",
+  "errors": [] // Optional validation errors
+}
 ```
 
-### Example: Login
-```sh
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"your-email@example.com","password":"your-password"}'
-```
+Common status codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
 
-### Example: Get Wallet Balance
-```sh
-curl http://localhost:3000/api/wallet/balance \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
+## Security Features
 
-### Example: Deposit Funds
-```sh
-curl -X POST http://localhost:3000/api/wallet/deposit \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"amount":100,"currency":"USD"}'
-```
+- JWT-based authentication
+- Password hashing with bcrypt
+- Rate limiting
+- Input validation
+- CORS protection
+- Helmet security headers
+- MongoDB transactions for data consistency
 
-### Example: Get All Users (Admin)
-```sh
-curl http://localhost:3000/api/admin/users \
-  -H "Authorization: Bearer YOUR_ADMIN_JWT_TOKEN"
-```
+## Contributing
 
-## Troubleshooting
-
-- **MongoDB Connection Issues:**
-  - Ensure MongoDB is running: `brew services list | grep mongodb`
-  - Check MongoDB logs: `cat /usr/local/var/log/mongodb/mongo.log`
-  - If using transactions, ensure MongoDB is configured as a replica set.
-
-- **Authentication Issues:**
-  - Ensure the JWT token is valid and not expired.
-  - Check that the user has the correct permissions (e.g., admin for admin endpoints).
-
-- **API Errors:**
-  - Check the server logs for detailed error messages.
-  - Ensure all required fields are provided in the request body.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License - see the LICENSE file for details. 
