@@ -1,41 +1,72 @@
 # Digital Wallet System
 
-A robust digital wallet system with user authentication, wallet operations, transaction processing, fraud detection, and admin reporting.
+A robust digital wallet system with user authentication, wallet operations, transaction processing, fraud detection, and admin reporting. This system implements secure cash management with comprehensive fraud detection and monitoring capabilities.
 
 ## Features
 
-- **User Authentication & Session Management**
-  - Secure user registration and login
-  - JWT-based authentication
-  - Protected routes with middleware
-  - Session tracking and last login updates
+### 1. User Authentication & Session Management
+- Secure user registration and login with bcrypt password hashing
+- JWT-based authentication with configurable expiration
+- Protected routes with middleware
+- Session tracking and last login updates
+- User profile management
+- Account status control (active/inactive)
 
-- **Wallet Operations**
-  - Deposit and withdraw virtual cash
-  - Transfer funds between users
-  - Transaction history with pagination
-  - Multiple currency support
-  - Real-time balance updates
+### 2. Wallet Operations
+- Deposit and withdraw virtual cash
+- Transfer funds between users
+- Transaction history with pagination
+- Multiple currency support (USD, EUR, GBP)
+- Real-time balance updates
+- Bonus balance tracking
+- Currency conversion support
 
-- **Transaction Processing & Validation**
-  - Atomic transactions with MongoDB transactions
-  - Balance validation and overdraft protection
-  - Transaction status tracking (PENDING, COMPLETED, FAILED)
-  - Transaction rollback on failure
+### 3. Transaction Processing & Validation
+- Atomic transactions using MongoDB transactions
+- Balance validation and overdraft protection
+- Transaction status tracking (PENDING, COMPLETED, FAILED, FLAGGED)
+- Transaction rollback on failure
+- Input validation and sanitization
+- Rate limiting for transactions
 
-- **Fraud Detection**
-  - Rule-based fraud detection system
-  - Suspicious pattern detection
-  - Transaction flagging and monitoring
-  - Daily fraud reports
-  - Risk scoring for transactions
+### 4. Fraud Detection System
+- Rule-based fraud detection system
+- Suspicious pattern detection:
+  - High frequency transactions
+  - Large amount transactions
+  - Unusual time transactions
+  - Multiple recipient accounts
+- Transaction flagging and monitoring
+- Daily fraud reports
+- Risk scoring for transactions
+- Configurable fraud thresholds
 
-- **Admin & Reporting**
-  - User management and status control
-  - Transaction monitoring and flagging
-  - System statistics and analytics
-  - Fraud reports and risk assessment
-  - User activity tracking
+### 5. Admin & Reporting
+- User management and status control
+- Transaction monitoring and flagging
+- System statistics and analytics
+- Fraud reports and risk assessment
+- User activity tracking
+- Balance aggregation
+- Top users by transaction volume
+
+### 6. Security Features
+- JWT-based authentication
+- Password hashing with bcrypt
+- Rate limiting
+- Input validation
+- CORS protection
+- Helmet security headers
+- MongoDB transactions for data consistency
+- Soft delete for data retention
+
+### 7. Automated Tasks
+- Daily fraud scans and reporting
+- Weekly transaction cleanup
+- Email alerts for:
+  - Large transactions
+  - Suspicious activities
+  - System reports
 
 ## Prerequisites
 
@@ -103,7 +134,7 @@ NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/digital-wallet
 
 # JWT Configuration
-JWT_SECRET=digital-wallet-secure-key-2024
+JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=24h
 
 # Fraud Detection
@@ -111,14 +142,17 @@ LARGE_TRANSACTION_THRESHOLD_USD=10000
 LARGE_TRANSACTION_THRESHOLD_EUR=8500
 LARGE_TRANSACTION_THRESHOLD_GBP=7500
 
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
 # Cleanup Configuration
 TRANSACTION_CLEANUP_DAYS=30
+
 
 # Logging Configuration
 LOG_LEVEL=info
 ```
-
-**Note:** Do not commit the `.env` file to version control. It is already included in `.gitignore`.
 
 ## API Documentation
 
@@ -283,6 +317,26 @@ Common status codes:
 - CORS protection
 - Helmet security headers
 - MongoDB transactions for data consistency
+- Soft delete for data retention
+
+## Automated Tasks
+
+### Daily Fraud Scan
+- Runs every day at midnight
+- Analyzes transactions for fraud patterns
+- Generates daily report
+- Sends email to admin users
+
+### Weekly Cleanup
+- Runs every Sunday at 1 AM
+- Soft deletes old completed transactions
+- Configurable retention period
+
+### Email Alerts
+- Large transaction alerts
+- Suspicious activity alerts
+- System reports
+- Daily fraud reports
 
 ## Contributing
 
@@ -291,6 +345,13 @@ Common status codes:
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## Testing
+
+Run the test suite:
+```sh
+npm test
+```
 
 ## License
 
